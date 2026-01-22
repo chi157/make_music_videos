@@ -78,14 +78,15 @@ FONT_PATH = FONT_FILE if FONT_FILE else "msjh.ttc"  # 使用選擇/資料夾內�
 VIDEO_SIZE = (1280, 720)      # 影片解析度
 FPS = 24                      # 每秒幾格
 BAR_COUNT = 90                # 畫面要有幾根音頻柱子（增加到90根確保覆蓋完整）
-BAR_COLOR = (106, 106, 255)   # 柱子顏色 #6A6AFF
+BAR_COLOR = (90, 90, 173)     # 柱子顏色 #5A5AAD
 BG_COLOR = (227, 242, 253)    # 背景顏色 #E3F2FD 淺藍
-CURRENT_LYRICS_COLOR = (40, 148, 255)  # 當前歌詞顏色 深藍 #2894FF	
-OTHER_LYRICS_COLOR = (106, 106, 255)  # 其他歌詞顏色 淺藍 #6A6AFF
+CURRENT_LYRICS_COLOR = (72, 72, 145)  # 當前歌詞顏色 #484891
+OTHER_LYRICS_COLOR = (72, 72, 145)  # 其他歌詞顏色 #484891
 FONT_SIZE = 25               # 統一字體大小
 BG_IMAGE_PATH = "background.png"  # 背景圖片路徑（放在專案資料夾）
 OVERLAY_ALPHA = 0.7          # 黑色遮罩透明度
 TEXT_STROKE_WIDTH = 1        # 文字白邊寬度
+OTHER_TEXT_STROKE_WIDTH = 0.5  # 其他文字白邊寬度
 TEXT_STROKE_COLOR = (255, 255, 255)
 OTHER_LYRICS_ALPHA = 50     # 非當前歌詞透明度 (0-255) 降低透明度讓當前歌詞更突顯
 # =========================================
@@ -198,6 +199,41 @@ def wrap_english_text_simple(text, max_chars_per_line=30):
         lines.append(current)
 
     return lines if lines else [text]
+
+def draw_text_with_spacing(draw, xy, text, font, fill, stroke_width, stroke_fill, spacing=1, anchor="mm"):
+    """
+    繪製帶有字間距的文字。
+    目前僅完整支援 anchor="mm" (中心對齊)。
+    """
+    if not text:
+        return
+        
+    if anchor != "mm":
+        # 如果不是 mm，回退到普通繪製（或根據需要實作其他對齊）
+        draw.text(xy, text, font=font, fill=fill, stroke_width=stroke_width, stroke_fill=stroke_fill, anchor=anchor)
+        return
+
+    # 計算總寬度
+    total_width = 0
+    char_widths = []
+    for char in text:
+        # textlength 回傳浮點數，累積計算
+        w = draw.textlength(char, font=font)
+        char_widths.append(w)
+        total_width += w
+    
+    # 加上間距總和
+    total_width += spacing * (len(text) - 1) if len(text) > 1 else 0
+    
+    # 計算起始 X (xy[0] 是中心 x)
+    start_x = xy[0] - total_width / 2
+    y = xy[1] # xy[1] 是中心 y
+    
+    current_x = start_x
+    for i, char in enumerate(text):
+        # 使用 "lm" (Left-Middle) 讓文字垂直置中於 y，水平從 current_x 開始
+        draw.text((current_x, y), char, font=font, fill=fill, stroke_width=stroke_width, stroke_fill=stroke_fill, anchor="lm")
+        current_x += char_widths[i] + spacing
 
 def make_frame(t):
     """
@@ -341,9 +377,11 @@ def make_frame(t):
                 if i == current_index:
                     color = CURRENT_LYRICS_COLOR  # 深藍色 - 當前句
                     stroke_color = TEXT_STROKE_COLOR
+                    current_stroke_width = TEXT_STROKE_WIDTH
                 else:
                     color = OTHER_LYRICS_COLOR  # 淺藍色 - 其他句
                     stroke_color = TEXT_STROKE_COLOR
+                    current_stroke_width = OTHER_TEXT_STROKE_WIDTH
 
                 if i != current_index:
                     # 使非當前歌詞變暗 (RGB * 0.7) 並且應用透明度
@@ -352,8 +390,9 @@ def make_frame(t):
                     stroke_color = (int(stroke_color[0] * dim_factor), int(stroke_color[1] * dim_factor), int(stroke_color[2] * dim_factor), OTHER_LYRICS_ALPHA)
                 
                 # 計算換行後的文字行數與區塊高度，避免中英文重疊
-                chinese_lines = wrap_chinese_text_simple(chinese_text, max_chars_per_line=30)
-                english_lines = wrap_english_text_simple(english_text, max_chars_per_line=55)
+                # 減少每行字數以容納額外的字間距，避免超出畫面
+                chinese_lines = wrap_chinese_text_simple(chinese_text, max_chars_per_line=20)
+                english_lines = wrap_english_text_simple(english_text, max_chars_per_line=45)
 
                 chinese_line_height = FONT_SIZE + 6
                 english_line_height = int(FONT_SIZE * 0.65) + 4
@@ -366,14 +405,17 @@ def make_frame(t):
                     # 直接使用 lyrics_center_x 配合 anchor="mm" 來置中
                     x = lyrics_center_x
                     y = block_top + idx * chinese_line_height
-                    draw.text(
+                    # 使用自定義函數繪製，增加字間距 (spacing=5)
+                    draw_text_with_spacing(
+                        draw,
                         (x, y),
                         line,
                         font=CHINESE_FONT,
                         fill=color,
-                        stroke_width=TEXT_STROKE_WIDTH,
+                        stroke_width=current_stroke_width,
                         stroke_fill=stroke_color,
-                        anchor="mm"  # 使用中心锚点
+                        spacing=5,
+                        anchor="mm"
                     )
 
                 # 英文顏色稍淺一點
@@ -393,14 +435,17 @@ def make_frame(t):
                 for idx, line in enumerate(english_lines):
                     # 使用简单估算：英文字符宽度约为字体大小的0.6倍
                     y = english_start_y + idx * english_line_height
-                    draw.text(
+                    # 使用自定義函數繪製，英文字間距稍小 (spacing=2)
+                    draw_text_with_spacing(
+                        draw,
                         (lyrics_center_x, y),
                         line,
                         font=ENGLISH_FONT,
                         fill=english_color,
-                        stroke_width=TEXT_STROKE_WIDTH,
+                        stroke_width=current_stroke_width,
                         stroke_fill=stroke_color,
-                        anchor="mm"  # 使用中心锚点
+                        spacing=2,
+                        anchor="mm"
                     )
                 
         except Exception as e:
