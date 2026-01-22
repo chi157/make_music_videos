@@ -344,8 +344,8 @@ def make_frame(t):
     if current_index >= 0 and current_index < len(subs):
         try:
             # 計算歌詞區域
-            display_count = 5
-            center_pos = 2
+            display_count = 3
+            center_pos = 1
             
             start_idx = max(0, current_index - center_pos)
             end_idx = min(len(subs), start_idx + display_count)
@@ -366,7 +366,7 @@ def make_frame(t):
             lyrics_center_x = lyrics_box_left + lyrics_box_width // 2
             max_width = lyrics_box_width - 20
             
-            # 繪製5句歌詞
+            # 繪製3句歌詞
             for i in range(start_idx, end_idx):
                 relative_pos = i - start_idx
                 y_pos = start_y + relative_pos * line_height
