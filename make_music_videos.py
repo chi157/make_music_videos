@@ -354,7 +354,8 @@ def make_frame(t):
                 start_idx = max(0, end_idx - display_count)
             
             # 計算歌詞位置和大小
-            line_height = 110
+            # 增加每行的分配高度，避免重疊 (原本 110 -> 140)
+            line_height = 140 
             total_height = line_height * display_count
             start_y = (h - total_height) / 2 + 50  # 整體下移 50px
 
@@ -487,23 +488,23 @@ def make_frame(t):
         x = w - padding
         y = h - padding
 
-        # 1. 繪製底部白邊 (寬度 = 粗體寬度 1.0 + 白邊 0.3 = 1.3)
+        # 1. 繪製底部白邊 (寬度 = 粗體寬度 0.6 + 白邊 0.3 = 0.9)
         draw.text(
             (x, y),
             singer_text,
             font=SINGER_FONT,
             fill=OTHER_LYRICS_COLOR,
-            stroke_width=1.3,
+            stroke_width=0.9,
             stroke_fill=TEXT_STROKE_COLOR,
             anchor="rb"  # 右下角锚点
         )
-        # 2. 繪製上層文字 (模擬粗體，寬度 1.0，顏色同字體)
+        # 2. 繪製上層文字 (模擬微粗體，寬度 0.6，顏色同字體)
         draw.text(
             (x, y),
             singer_text,
             font=SINGER_FONT,
             fill=OTHER_LYRICS_COLOR,
-            stroke_width=1.0,
+            stroke_width=0.6,
             stroke_fill=OTHER_LYRICS_COLOR,
             anchor="rb"  # 右下角锚点
         )
