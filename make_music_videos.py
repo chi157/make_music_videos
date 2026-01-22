@@ -320,8 +320,8 @@ def make_frame(t):
             start_y = (h - total_height) / 2 + 50  # 整體下移 50px
 
             # 歌詞區域 - 右半邊的中心區域
-            lyrics_box_left = w // 2 + 60
-            lyrics_box_width = w // 2 - 140
+            lyrics_box_left = w // 2 + 40
+            lyrics_box_width = w // 2 - 80  # 加寬區域
             lyrics_center_x = lyrics_box_left + lyrics_box_width // 2
             max_width = lyrics_box_width - 20
             
@@ -346,12 +346,14 @@ def make_frame(t):
                     stroke_color = TEXT_STROKE_COLOR
 
                 if i != current_index:
-                    color = (color[0], color[1], color[2], OTHER_LYRICS_ALPHA)
-                    stroke_color = (stroke_color[0], stroke_color[1], stroke_color[2], OTHER_LYRICS_ALPHA)
+                    # 使非當前歌詞變暗 (RGB * 0.7) 並且應用透明度
+                    dim_factor = 0.7
+                    color = (int(color[0] * dim_factor), int(color[1] * dim_factor), int(color[2] * dim_factor), OTHER_LYRICS_ALPHA)
+                    stroke_color = (int(stroke_color[0] * dim_factor), int(stroke_color[1] * dim_factor), int(stroke_color[2] * dim_factor), OTHER_LYRICS_ALPHA)
                 
                 # 計算換行後的文字行數與區塊高度，避免中英文重疊
-                chinese_lines = wrap_chinese_text_simple(chinese_text, max_chars_per_line=20)
-                english_lines = wrap_english_text_simple(english_text, max_chars_per_line=30)
+                chinese_lines = wrap_chinese_text_simple(chinese_text, max_chars_per_line=30)
+                english_lines = wrap_english_text_simple(english_text, max_chars_per_line=55)
 
                 chinese_line_height = FONT_SIZE + 6
                 english_line_height = int(FONT_SIZE * 0.65) + 4
