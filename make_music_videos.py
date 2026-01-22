@@ -579,39 +579,8 @@ def make_frame(t):
                 traceback.print_exc()
                 make_frame._error_logged = True
 
-    # --- D. 演唱者標記（右下角紅色區域） ---
-    try:
-        singer_text = "演唱者：chi"
-        padding = 30
-        # 使用右下角锚点
-        x = w - padding
-        y = h - padding
-
-        # 1. 繪製底部白邊 (寬度 = 粗體寬度 0.6 + 白邊 0.3 = 0.9)
-        draw.text(
-            (x, y),
-            singer_text,
-            font=SINGER_FONT,
-            fill=OTHER_LYRICS_COLOR,
-            stroke_width=0.9,
-            stroke_fill=TEXT_STROKE_COLOR,
-            anchor="rb"  # 右下角锚点
-        )
-        # 2. 繪製上層文字 (模擬微粗體，寬度 0.6，顏色同字體)
-        draw.text(
-            (x, y),
-            singer_text,
-            font=SINGER_FONT,
-            fill=OTHER_LYRICS_COLOR,
-            stroke_width=0.6,
-            stroke_fill=OTHER_LYRICS_COLOR,
-            anchor="rb"  # 右下角锚点
-        )
-    except Exception as e:
-        if not hasattr(make_frame, '_singer_error_logged'):
-            print(f"⚠ 演唱者渲染錯誤: {e}")
-            traceback.print_exc()
-            make_frame._singer_error_logged = True
+    # --- D. 演唱者標記 (移除) ---
+    # (原本顯示於右下角的代碼已移除)
 
     return np.array(img.convert("RGB"))
 
