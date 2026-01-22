@@ -343,7 +343,7 @@ def make_frame(t):
     
     if current_index >= 0 and current_index < len(subs):
         try:
-            # 計算歌詞區域
+            # 設定顯示參數
             display_count = 3
             center_pos = 1
             
@@ -352,126 +352,140 @@ def make_frame(t):
             
             if end_idx - start_idx < display_count:
                 start_idx = max(0, end_idx - display_count)
-            
-            # 計算歌詞位置和大小
-            # 增加每行的分配高度，避免重疊 (原本 110 -> 140)
-            line_height = 140 
-            total_height = line_height * display_count
-            start_y = (h - total_height) / 2 + 50  # 整體下移 50px
 
             # 歌詞區域 - 右半邊的中心區域
-            # 往左移動：原本 w // 2 + 40，改少一點讓整體左移
             lyrics_box_left = w // 2
-            lyrics_box_width = w // 2 - 80  # 加寬區域
+            lyrics_box_width = w // 2 - 80
             lyrics_center_x = lyrics_box_left + lyrics_box_width // 2
-            max_width = lyrics_box_width - 20
             
-            # 繪製3句歌詞
+            # --- 動態排版計算 (避免重疊) ---
+            visible_items = []
+            
+            # 1. 先計算每句歌詞的高度與內容
             for i in range(start_idx, end_idx):
-                relative_pos = i - start_idx
-                y_pos = start_y + relative_pos * line_height
-                
                 text = subs[i].text
-                
-                # 分離中文和英文（假設格式是：中文\n英文）
                 lines = text.split('\n')
                 chinese_text = lines[0] if len(lines) > 0 else ""
                 english_text = lines[1] if len(lines) > 1 else ""
                 
-                # 當前句用深藍色，其他句用淺藍色
-                if i == current_index:
-                    color = CURRENT_LYRICS_COLOR  # 深藍色 - 當前句
+                is_current = (i == current_index)
+                
+                # 自動換行
+                chinese_lines = wrap_chinese_text_simple(chinese_text, max_chars_per_line=15)
+                english_lines = wrap_english_text_simple(english_text, max_chars_per_line=35)
+                
+                # 行高設定
+                if is_current:
+                    c_lh = CURRENT_FONT_SIZE + 15
+                    e_lh = int(CURRENT_FONT_SIZE * 0.65) + 12
+                else:
+                    c_lh = FONT_SIZE + 12
+                    e_lh = int(FONT_SIZE * 0.65) + 8
+                
+                block_gap = 10 if chinese_lines and english_lines else 0
+                block_height = len(chinese_lines) * c_lh + block_gap + len(english_lines) * e_lh
+                
+                visible_items.append({
+                    'index': i,
+                    'is_current': is_current,
+                    'chinese_lines': chinese_lines,
+                    'english_lines': english_lines,
+                    'c_lh': c_lh,
+                    'e_lh': e_lh,
+                    'block_height': block_height,
+                    'block_gap': block_gap
+                })
+
+            # 2. 計算 Y 軸位置 (以當前歌詞為錨點)
+            current_item_idx = -1
+            for idx, item in enumerate(visible_items):
+                if item['is_current']:
+                    current_item_idx = idx
+                    break
+            
+            # 如果列表裡沒有當前歌詞 (邊界情況)，就預設中間那個是主要位置
+            if current_item_idx == -1:
+                current_item_idx = len(visible_items) // 2
+
+            # 固定當前歌詞的中心位置
+            ref_y = h // 2 + 50  # 稍微偏下
+            margin = 55  # 區塊之間的間距 (增加間距避免重疊)
+
+            # 初始化位置陣列
+            positions = [0] * len(visible_items)
+            if visible_items:
+                positions[current_item_idx] = ref_y
+                
+                # 往上推算 (前一句)
+                for k in range(current_item_idx - 1, -1, -1):
+                    curr = visible_items[k]
+                    next_item = visible_items[k+1]
+                    # 上一句中心 = 下一句中心 - 下一句半高 - 間距 - 上一句半高
+                    positions[k] = positions[k+1] - next_item['block_height']/2 - margin - curr['block_height']/2
+                
+                # 往下推算 (後一句)
+                for k in range(current_item_idx + 1, len(visible_items)):
+                    curr = visible_items[k]
+                    prev_item = visible_items[k-1]
+                    # 下一句中心 = 上一句中心 + 上一句半高 + 間距 + 下一句半高
+                    positions[k] = positions[k-1] + prev_item['block_height']/2 + margin + curr['block_height']/2
+
+            # 3. 繪製
+            for item, y_pos in zip(visible_items, positions):
+                i = item['index']
+                block_height = item['block_height']
+                c_lh = item['c_lh']
+                e_lh = item['e_lh']
+                chinese_lines = item['chinese_lines']
+                english_lines = item['english_lines']
+                block_gap = item['block_gap']
+                
+                block_top = y_pos - block_height / 2
+                
+                # 決定顏色
+                if item['is_current']:
+                    color = CURRENT_LYRICS_COLOR
                     stroke_color = TEXT_STROKE_COLOR
                     current_stroke_width = TEXT_STROKE_WIDTH
                 else:
-                    color = OTHER_LYRICS_COLOR  # 淺藍色 - 其他句
+                    color = OTHER_LYRICS_COLOR
                     stroke_color = TEXT_STROKE_COLOR
                     current_stroke_width = OTHER_TEXT_STROKE_WIDTH
-
-                if i != current_index:
-                    # 使非當前歌詞變暗 (RGB * 0.7) 並且應用透明度
+                    
+                    # 變暗透明
                     dim_factor = 0.5
-                    color = (int(color[0] * dim_factor), int(color[1] * dim_factor), int(color[2] * dim_factor), OTHER_LYRICS_ALPHA)
-                    stroke_color = (int(stroke_color[0] * dim_factor), int(stroke_color[1] * dim_factor), int(stroke_color[2] * dim_factor), OTHER_LYRICS_ALPHA)
-                
-                # 計算換行後的文字行數與區塊高度，避免中英文重疊
-                # 減少每行字數以容納額外的字間距，避免超出畫面
-                # 因應當前字體加大 (28px + 5px 間距)，縮減每行最大字數
-                # 同時因為整體左移，為避免碰到左側圓圈，稍微再縮減字數
-                chinese_lines = wrap_chinese_text_simple(chinese_text, max_chars_per_line=15)
-                english_lines = wrap_english_text_simple(english_text, max_chars_per_line=35)
+                    color = (int(color[0]*dim_factor), int(color[1]*dim_factor), int(color[2]*dim_factor), OTHER_LYRICS_ALPHA)
+                    stroke_color = (int(stroke_color[0]*dim_factor), int(stroke_color[1]*dim_factor), int(stroke_color[2]*dim_factor), OTHER_LYRICS_ALPHA)
 
-                # 增加行高以避免擠在一起，特別是當前歌詞字體變大的時候
-                # 根據是否為當前歌詞動態調整行高
-                if i == current_index:
-                    c_line_h = CURRENT_FONT_SIZE + 15  # 增加行距
-                    e_line_h = int(CURRENT_FONT_SIZE * 0.65) + 12
-                else:
-                    c_line_h = FONT_SIZE + 12
-                    e_line_h = int(FONT_SIZE * 0.65) + 8
-
-                block_gap = 10 if chinese_lines and english_lines else 0
-                block_height = len(chinese_lines) * c_line_h + block_gap + len(english_lines) * e_line_h
-                block_top = y_pos - block_height / 2
-
-                # 繪製中文區塊（上方）
+                # 繪製中文區塊
                 for idx, line in enumerate(chinese_lines):
-                    # 直接使用 lyrics_center_x 配合 anchor="mm" 來置中
                     x = lyrics_center_x
-                    y = block_top + idx * c_line_h
-                    # 使用自定義函數繪製，增加字間距 (spacing=5)
-                    if i == current_index:
-                        # 當前歌詞：模擬粗體 + 白邊 + 更大字體 (28)
-                        # 1. 繪製底部白邊 (粗大白邊)
-                        draw_text_with_spacing(
-                            draw, (x, y), line, font=CHINESE_FONT_CURRENT, fill=color,
-                            stroke_width=3, stroke_fill=stroke_color, spacing=5, anchor="mm"
-                        )
-                        # 2. 繪製上層文字 (模擬粗體)
-                        draw_text_with_spacing(
-                            draw, (x, y), line, font=CHINESE_FONT_CURRENT, fill=color,
-                            stroke_width=1, stroke_fill=color, spacing=5, anchor="mm"
-                        )
+                    y = block_top + idx * c_lh
+                    
+                    if item['is_current']:
+                         # 當前歌詞：模擬粗體 + 白邊
+                        draw_text_with_spacing(draw, (x, y), line, font=CHINESE_FONT_CURRENT, fill=color, stroke_width=3, stroke_fill=stroke_color, spacing=5, anchor="mm")
+                        draw_text_with_spacing(draw, (x, y), line, font=CHINESE_FONT_CURRENT, fill=color, stroke_width=1, stroke_fill=color, spacing=5, anchor="mm")
                     else:
-                        # 其他歌詞：正常繪製 (白邊 0.5) + 原字體 (25)
-                        draw_text_with_spacing(
-                            draw, (x, y), line, font=CHINESE_FONT, fill=color,
-                            stroke_width=current_stroke_width, stroke_fill=stroke_color, spacing=5, anchor="mm"
-                        )
+                        draw_text_with_spacing(draw, (x, y), line, font=CHINESE_FONT, fill=color, stroke_width=current_stroke_width, stroke_fill=stroke_color, spacing=5, anchor="mm")
 
-                # 英文顏色稍淺一點
-                if i != current_index:
-                    english_color_base = OTHER_LYRICS_COLOR
-                    english_color = (
-                        min(255, english_color_base[0] + 40),
-                        min(255, english_color_base[1] + 40),
-                        min(255, english_color_base[2] + 40),
-                        OTHER_LYRICS_ALPHA
-                    )
+                # 英文顏色
+                if item['is_current']:
+                    e_color = color
                 else:
-                    english_color = color
-
-                # 繪製英文區塊（下方）
-                english_start_y = block_top + len(chinese_lines) * c_line_h + block_gap
+                    e_base = OTHER_LYRICS_COLOR
+                    e_color = (min(255, e_base[0]+40), min(255, e_base[1]+40), min(255, e_base[2]+40), OTHER_LYRICS_ALPHA)
+                
+                # 繪製英文區塊
+                e_start_y = block_top + len(chinese_lines) * c_lh + block_gap
                 for idx, line in enumerate(english_lines):
-                    # 使用简单估算：英文字符宽度约为字体大小的0.6倍
-                    y = english_start_y + idx * e_line_h
-                    # 使用自定義函數繪製，英文字間距稍小 (spacing=2)
-                    if i == current_index:
-                        # 當前歌詞：模擬粗體 + 白邊 + 更大字體
-                        draw_text_with_spacing(
-                            draw, (lyrics_center_x, y), line, font=ENGLISH_FONT_CURRENT, fill=english_color,
-                            stroke_width=3, stroke_fill=stroke_color, spacing=2, anchor="mm"
-                        )
-                        draw_text_with_spacing(
-                            draw, (lyrics_center_x, y), line, font=ENGLISH_FONT_CURRENT, fill=english_color,
-                            stroke_width=1, stroke_fill=english_color, spacing=2, anchor="mm"
-                        )
+                    y = e_start_y + idx * e_lh
+                    
+                    if item['is_current']:
+                        draw_text_with_spacing(draw, (lyrics_center_x, y), line, font=ENGLISH_FONT_CURRENT, fill=e_color, stroke_width=3, stroke_fill=stroke_color, spacing=2, anchor="mm")
+                        draw_text_with_spacing(draw, (lyrics_center_x, y), line, font=ENGLISH_FONT_CURRENT, fill=e_color, stroke_width=1, stroke_fill=e_color, spacing=2, anchor="mm")
                     else:
-                        draw_text_with_spacing(
-                            draw, (lyrics_center_x, y), line, font=ENGLISH_FONT, fill=english_color,
-                            stroke_width=current_stroke_width, stroke_fill=stroke_color, spacing=2, anchor="mm"
-                        )
+                        draw_text_with_spacing(draw, (lyrics_center_x, y), line, font=ENGLISH_FONT, fill=e_color, stroke_width=current_stroke_width, stroke_fill=stroke_color, spacing=2, anchor="mm")
                 
         except Exception as e:
             # 只在第一次錯誤時打印，避免高頻打印
