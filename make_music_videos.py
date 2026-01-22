@@ -86,8 +86,8 @@ FONT_SIZE = 25               # 統一字體大小
 CURRENT_FONT_SIZE = 35       # 當前歌詞字體大小
 BG_IMAGE_PATH = "background.png"  # 背景圖片路徑（放在專案資料夾）
 OVERLAY_ALPHA = 0.7          # 黑色遮罩透明度
-TEXT_STROKE_WIDTH = 1        # 文字白邊寬度
-OTHER_TEXT_STROKE_WIDTH = 0.5  # 其他文字白邊寬度
+TEXT_STROKE_WIDTH = 0.7        # 文字白邊寬度
+OTHER_TEXT_STROKE_WIDTH = 0.4  # 其他文字白邊寬度
 TEXT_STROKE_COLOR = (255, 255, 255)
 OTHER_LYRICS_ALPHA = 50     # 非當前歌詞透明度 (0-255) 降低透明度讓當前歌詞更突顯
 # =========================================
@@ -118,7 +118,7 @@ def try_load_fonts(font_path):
         e_font = ImageFont.truetype(font_path, int(FONT_SIZE * 0.65))
         e_font_current = ImageFont.truetype(font_path, int(CURRENT_FONT_SIZE * 0.65))
         t_font = ImageFont.truetype(font_path, 56)
-        s_font = ImageFont.truetype(font_path, 22)
+        s_font = ImageFont.truetype(font_path, 30)
         
         # 強制渲染測試：畫一張小圖來觸發潛在的錯誤 (如 OSError: too many function definitions)
         dummy_img = Image.new("RGB", (100, 100))
@@ -394,8 +394,9 @@ def make_frame(t):
                 
                 # 計算換行後的文字行數與區塊高度，避免中英文重疊
                 # 減少每行字數以容納額外的字間距，避免超出畫面
-                chinese_lines = wrap_chinese_text_simple(chinese_text, max_chars_per_line=20)
-                english_lines = wrap_english_text_simple(english_text, max_chars_per_line=45)
+                # 因應當前字體加大 (28px + 5px 間距)，縮減每行最大字數
+                chinese_lines = wrap_chinese_text_simple(chinese_text, max_chars_per_line=16)
+                english_lines = wrap_english_text_simple(english_text, max_chars_per_line=38)
 
                 chinese_line_height = FONT_SIZE + 6
                 english_line_height = int(FONT_SIZE * 0.65) + 4
