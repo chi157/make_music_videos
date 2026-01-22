@@ -357,7 +357,7 @@ def make_frame(t):
             lyrics_box_left = w // 2
             lyrics_box_width = w // 2 - 80
             # 整體往左移 100px (原本是置中於右半邊)
-            lyrics_center_x = (lyrics_box_left + lyrics_box_width // 2) - 100
+            lyrics_center_x = (lyrics_box_left + lyrics_box_width // 2) - 150
             
             # --- 動態排版計算 (避免重疊) ---
             visible_items = []
