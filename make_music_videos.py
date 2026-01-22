@@ -347,7 +347,7 @@ def make_frame(t):
 
                 if i != current_index:
                     # 使非當前歌詞變暗 (RGB * 0.7) 並且應用透明度
-                    dim_factor = 0.7
+                    dim_factor = 0.5
                     color = (int(color[0] * dim_factor), int(color[1] * dim_factor), int(color[2] * dim_factor), OTHER_LYRICS_ALPHA)
                     stroke_color = (int(stroke_color[0] * dim_factor), int(stroke_color[1] * dim_factor), int(stroke_color[2] * dim_factor), OTHER_LYRICS_ALPHA)
                 
