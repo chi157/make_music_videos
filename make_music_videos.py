@@ -118,8 +118,8 @@ BAR_COLOR = (90, 90, 173)     # 柱子顏色 #5A5AAD
 BG_COLOR = (227, 242, 253)    # 背景顏色 #E3F2FD 淺藍
 CURRENT_LYRICS_COLOR = (72, 72, 145)  # 當前歌詞顏色 #484891
 OTHER_LYRICS_COLOR = (72, 72, 145)  # 其他歌詞顏色 #484891
-FONT_SIZE = 38               # 統一字體大小
-CURRENT_FONT_SIZE = 55       # 當前歌詞字體大小
+FONT_SIZE = 45               # 統一字體大小 (原本 38)
+CURRENT_FONT_SIZE = 65       # 當前歌詞字體大小 (原本 55)
 BG_IMAGE_PATH = "background.png"  # 背景圖片路徑（放在專案資料夾）
 OVERLAY_ALPHA = 0.7          # 黑色遮罩透明度
 TEXT_STROKE_WIDTH = 0.7        # 文字白邊寬度
@@ -158,8 +158,8 @@ def try_load_fonts(font_path):
             ImageFont.truetype(font_path, CURRENT_FONT_SIZE, **kwargs),
             ImageFont.truetype(font_path, int(FONT_SIZE * 0.65), **kwargs),
             ImageFont.truetype(font_path, int(CURRENT_FONT_SIZE * 0.65), **kwargs),
-            ImageFont.truetype(font_path, 84, **kwargs),
-            ImageFont.truetype(font_path, 45, **kwargs)
+            ImageFont.truetype(font_path, 100, **kwargs),  # 標題變大
+            ImageFont.truetype(font_path, 55, **kwargs)   # 歌手變大
         )
 
     try:
@@ -432,19 +432,19 @@ def make_frame(t):
                 
                 is_current = (i == current_index)
                 
-                # 自動換行
-                chinese_lines = wrap_chinese_text_simple(chinese_text, max_chars_per_line=15)
-                english_lines = wrap_english_text_simple(english_text, max_chars_per_line=35)
+                # 自動換行 (字體變大，每行字數減少以防超出)
+                chinese_lines = wrap_chinese_text_simple(chinese_text, max_chars_per_line=13)
+                english_lines = wrap_english_text_simple(english_text, max_chars_per_line=30)
                 
-                # 行高設定
+                # 行高設定 (增加行距)
                 if is_current:
-                    c_lh = CURRENT_FONT_SIZE + 15
-                    e_lh = int(CURRENT_FONT_SIZE * 0.65) + 12
+                    c_lh = CURRENT_FONT_SIZE + 25  # 增加行高
+                    e_lh = int(CURRENT_FONT_SIZE * 0.65) + 18
                 else:
-                    c_lh = FONT_SIZE + 12
-                    e_lh = int(FONT_SIZE * 0.65) + 8
+                    c_lh = FONT_SIZE + 20
+                    e_lh = int(FONT_SIZE * 0.65) + 12
                 
-                block_gap = 10 if chinese_lines and english_lines else 0
+                block_gap = 20 if chinese_lines and english_lines else 0 # 增加中英文間距
                 block_height = len(chinese_lines) * c_lh + block_gap + len(english_lines) * e_lh
                 
                 visible_items.append({
@@ -471,7 +471,7 @@ def make_frame(t):
 
             # 固定當前歌詞的中心位置
             base_ref_y = h // 2 + 75  # 稍微偏下
-            margin = 80  # 區塊之間的間距 (增加間距避免重疊)
+            margin = 120  # 區塊之間的間距 (增加間距避免重疊)
 
             # --- 滑動動畫計算 ---
             global_y_offset = 0
@@ -548,11 +548,11 @@ def make_frame(t):
                     y = block_top + idx * c_lh
                     
                     if item['is_current']:
-                         # 當前歌詞：模擬粗體 + 白邊
-                        draw_text_with_spacing(draw, (x, y), line, font=CHINESE_FONT_CURRENT, fill=color, stroke_width=3, stroke_fill=stroke_color, spacing=5, anchor="mm")
-                        draw_text_with_spacing(draw, (x, y), line, font=CHINESE_FONT_CURRENT, fill=color, stroke_width=1, stroke_fill=color, spacing=5, anchor="mm")
+                         # 當前歌詞：模擬粗體 + 白邊 (增加字距 spacing)
+                        draw_text_with_spacing(draw, (x, y), line, font=CHINESE_FONT_CURRENT, fill=color, stroke_width=3, stroke_fill=stroke_color, spacing=8, anchor="mm")
+                        draw_text_with_spacing(draw, (x, y), line, font=CHINESE_FONT_CURRENT, fill=color, stroke_width=1, stroke_fill=color, spacing=8, anchor="mm")
                     else:
-                        draw_text_with_spacing(draw, (x, y), line, font=CHINESE_FONT, fill=color, stroke_width=current_stroke_width, stroke_fill=stroke_color, spacing=5, anchor="mm")
+                        draw_text_with_spacing(draw, (x, y), line, font=CHINESE_FONT, fill=color, stroke_width=current_stroke_width, stroke_fill=stroke_color, spacing=6, anchor="mm")
 
                 # 英文顏色
                 if item['is_current']:
@@ -567,10 +567,10 @@ def make_frame(t):
                     y = e_start_y + idx * e_lh
                     
                     if item['is_current']:
-                        draw_text_with_spacing(draw, (lyrics_center_x, y), line, font=ENGLISH_FONT_CURRENT, fill=e_color, stroke_width=3, stroke_fill=stroke_color, spacing=2, anchor="mm")
-                        draw_text_with_spacing(draw, (lyrics_center_x, y), line, font=ENGLISH_FONT_CURRENT, fill=e_color, stroke_width=1, stroke_fill=e_color, spacing=2, anchor="mm")
+                        draw_text_with_spacing(draw, (lyrics_center_x, y), line, font=ENGLISH_FONT_CURRENT, fill=e_color, stroke_width=3, stroke_fill=stroke_color, spacing=4, anchor="mm")
+                        draw_text_with_spacing(draw, (lyrics_center_x, y), line, font=ENGLISH_FONT_CURRENT, fill=e_color, stroke_width=1, stroke_fill=e_color, spacing=4, anchor="mm")
                     else:
-                        draw_text_with_spacing(draw, (lyrics_center_x, y), line, font=ENGLISH_FONT, fill=e_color, stroke_width=current_stroke_width, stroke_fill=stroke_color, spacing=2, anchor="mm")
+                        draw_text_with_spacing(draw, (lyrics_center_x, y), line, font=ENGLISH_FONT, fill=e_color, stroke_width=current_stroke_width, stroke_fill=stroke_color, spacing=3, anchor="mm")
                 
         except Exception as e:
             # 只在第一次錯誤時打印，避免高頻打印
