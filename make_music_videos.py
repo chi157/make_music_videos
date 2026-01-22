@@ -406,17 +406,29 @@ def make_frame(t):
                     x = lyrics_center_x
                     y = block_top + idx * chinese_line_height
                     # 使用自定義函數繪製，增加字間距 (spacing=5)
-                    draw_text_with_spacing(
-                        draw,
-                        (x, y),
-                        line,
-                        font=CHINESE_FONT,
-                        fill=color,
-                        stroke_width=current_stroke_width,
-                        stroke_fill=stroke_color,
-                        spacing=5,
-                        anchor="mm"
-                    )
+                    if i == current_index:
+                        # 當前歌詞：模擬粗體 + 白邊
+                        # 1. 繪製底部白邊 (粗大白邊)
+                        # 粗體增加 1px，白邊 1px -> 總描邊 3px (對應單側 1.5px? 不，PIL描邊均分內外)
+                        # 實際上 stroke_width=3 表示整個線寬3。邊緣外擴 1.5px。
+                        # 上層 stroke_width=1 表示線寬1。邊緣外擴 0.5px。
+                        # 可見白邊 = 1.5 - 0.5 = 1.0px。符合需求。
+                        draw_text_with_spacing(
+                            draw, (x, y), line, font=CHINESE_FONT, fill=color,
+                            stroke_width=3, stroke_fill=stroke_color, spacing=5, anchor="mm"
+                        )
+                        # 2. 繪製上層文字 (模擬粗體)
+                        # stroke_width=1 的同色描邊
+                        draw_text_with_spacing(
+                            draw, (x, y), line, font=CHINESE_FONT, fill=color,
+                            stroke_width=1, stroke_fill=color, spacing=5, anchor="mm"
+                        )
+                    else:
+                        # 其他歌詞：正常繪製 (白邊 0.5)
+                        draw_text_with_spacing(
+                            draw, (x, y), line, font=CHINESE_FONT, fill=color,
+                            stroke_width=current_stroke_width, stroke_fill=stroke_color, spacing=5, anchor="mm"
+                        )
 
                 # 英文顏色稍淺一點
                 if i != current_index:
@@ -436,17 +448,21 @@ def make_frame(t):
                     # 使用简单估算：英文字符宽度约为字体大小的0.6倍
                     y = english_start_y + idx * english_line_height
                     # 使用自定義函數繪製，英文字間距稍小 (spacing=2)
-                    draw_text_with_spacing(
-                        draw,
-                        (lyrics_center_x, y),
-                        line,
-                        font=ENGLISH_FONT,
-                        fill=english_color,
-                        stroke_width=current_stroke_width,
-                        stroke_fill=stroke_color,
-                        spacing=2,
-                        anchor="mm"
-                    )
+                    if i == current_index:
+                        # 當前歌詞：模擬粗體 + 白邊
+                        draw_text_with_spacing(
+                            draw, (lyrics_center_x, y), line, font=ENGLISH_FONT, fill=english_color,
+                            stroke_width=3, stroke_fill=stroke_color, spacing=2, anchor="mm"
+                        )
+                        draw_text_with_spacing(
+                            draw, (lyrics_center_x, y), line, font=ENGLISH_FONT, fill=english_color,
+                            stroke_width=1, stroke_fill=english_color, spacing=2, anchor="mm"
+                        )
+                    else:
+                        draw_text_with_spacing(
+                            draw, (lyrics_center_x, y), line, font=ENGLISH_FONT, fill=english_color,
+                            stroke_width=current_stroke_width, stroke_fill=stroke_color, spacing=2, anchor="mm"
+                        )
                 
         except Exception as e:
             # 只在第一次錯誤時打印，避免高頻打印
