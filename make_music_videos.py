@@ -359,7 +359,8 @@ def make_frame(t):
             start_y = (h - total_height) / 2 + 50  # 整體下移 50px
 
             # 歌詞區域 - 右半邊的中心區域
-            lyrics_box_left = w // 2 + 40
+            # 往左移動：原本 w // 2 + 40，改少一點讓整體左移
+            lyrics_box_left = w // 2
             lyrics_box_width = w // 2 - 80  # 加寬區域
             lyrics_center_x = lyrics_box_left + lyrics_box_width // 2
             max_width = lyrics_box_width - 20
@@ -395,20 +396,28 @@ def make_frame(t):
                 # 計算換行後的文字行數與區塊高度，避免中英文重疊
                 # 減少每行字數以容納額外的字間距，避免超出畫面
                 # 因應當前字體加大 (28px + 5px 間距)，縮減每行最大字數
-                chinese_lines = wrap_chinese_text_simple(chinese_text, max_chars_per_line=16)
-                english_lines = wrap_english_text_simple(english_text, max_chars_per_line=38)
+                # 同時因為整體左移，為避免碰到左側圓圈，稍微再縮減字數
+                chinese_lines = wrap_chinese_text_simple(chinese_text, max_chars_per_line=15)
+                english_lines = wrap_english_text_simple(english_text, max_chars_per_line=35)
 
-                chinese_line_height = FONT_SIZE + 6
-                english_line_height = int(FONT_SIZE * 0.65) + 4
-                block_gap = 6 if chinese_lines and english_lines else 0
-                block_height = len(chinese_lines) * chinese_line_height + block_gap + len(english_lines) * english_line_height
+                # 增加行高以避免擠在一起，特別是當前歌詞字體變大的時候
+                # 根據是否為當前歌詞動態調整行高
+                if i == current_index:
+                    c_line_h = CURRENT_FONT_SIZE + 15  # 增加行距
+                    e_line_h = int(CURRENT_FONT_SIZE * 0.65) + 12
+                else:
+                    c_line_h = FONT_SIZE + 12
+                    e_line_h = int(FONT_SIZE * 0.65) + 8
+
+                block_gap = 10 if chinese_lines and english_lines else 0
+                block_height = len(chinese_lines) * c_line_h + block_gap + len(english_lines) * e_line_h
                 block_top = y_pos - block_height / 2
 
                 # 繪製中文區塊（上方）
                 for idx, line in enumerate(chinese_lines):
                     # 直接使用 lyrics_center_x 配合 anchor="mm" 來置中
                     x = lyrics_center_x
-                    y = block_top + idx * chinese_line_height
+                    y = block_top + idx * c_line_h
                     # 使用自定義函數繪製，增加字間距 (spacing=5)
                     if i == current_index:
                         # 當前歌詞：模擬粗體 + 白邊 + 更大字體 (28)
@@ -442,10 +451,10 @@ def make_frame(t):
                     english_color = color
 
                 # 繪製英文區塊（下方）
-                english_start_y = block_top + len(chinese_lines) * chinese_line_height + block_gap
+                english_start_y = block_top + len(chinese_lines) * c_line_h + block_gap
                 for idx, line in enumerate(english_lines):
                     # 使用简单估算：英文字符宽度约为字体大小的0.6倍
-                    y = english_start_y + idx * english_line_height
+                    y = english_start_y + idx * e_line_h
                     # 使用自定義函數繪製，英文字間距稍小 (spacing=2)
                     if i == current_index:
                         # 當前歌詞：模擬粗體 + 白邊 + 更大字體
@@ -478,13 +487,24 @@ def make_frame(t):
         x = w - padding
         y = h - padding
 
+        # 1. 繪製底部白邊 (寬度 = 粗體寬度 1.0 + 白邊 0.3 = 1.3)
         draw.text(
             (x, y),
             singer_text,
             font=SINGER_FONT,
             fill=OTHER_LYRICS_COLOR,
-            stroke_width=TEXT_STROKE_WIDTH,
+            stroke_width=1.3,
             stroke_fill=TEXT_STROKE_COLOR,
+            anchor="rb"  # 右下角锚点
+        )
+        # 2. 繪製上層文字 (模擬粗體，寬度 1.0，顏色同字體)
+        draw.text(
+            (x, y),
+            singer_text,
+            font=SINGER_FONT,
+            fill=OTHER_LYRICS_COLOR,
+            stroke_width=1.0,
+            stroke_fill=OTHER_LYRICS_COLOR,
             anchor="rb"  # 右下角锚点
         )
     except Exception as e:
