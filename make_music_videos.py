@@ -408,8 +408,31 @@ def make_frame(t):
                 current_item_idx = len(visible_items) // 2
 
             # 固定當前歌詞的中心位置
-            ref_y = h // 2 + 50  # 稍微偏下
+            base_ref_y = h // 2 + 50  # 稍微偏下
             margin = 55  # 區塊之間的間距 (增加間距避免重疊)
+
+            # --- 滑動動畫計算 ---
+            global_y_offset = 0
+            # 只有在非第一句，且上一句也在顯示列表內時才做動畫
+            if current_index > 0 and current_item_idx > 0:
+                 start_sec = subs[current_index].start.ordinal / 1000.0
+                 dt = t - start_sec
+                 anim_duration = 0.5  # 動畫持續 0.5 秒
+                 
+                 if 0 <= dt < anim_duration:
+                     curr_item = visible_items[current_item_idx]
+                     prev_item = visible_items[current_item_idx - 1]
+                     
+                     # 計算從 "上一句置中" 到 "這一句置中" 的距離
+                     # 在上一句置中時，這一句的位置應該在 Center + dist
+                     stack_dist = (curr_item['block_height'] / 2) + margin + (prev_item['block_height'] / 2)
+                     
+                     # Cubic Ease Out: 快速滑動後減速
+                     progress = dt / anim_duration
+                     ease = 1 - (1 - progress) ** 3
+                     global_y_offset = stack_dist * (1 - ease)
+            
+            ref_y = base_ref_y + global_y_offset
 
             # 初始化位置陣列
             positions = [0] * len(visible_items)
