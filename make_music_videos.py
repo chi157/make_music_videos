@@ -83,6 +83,7 @@ BG_COLOR = (227, 242, 253)    # 背景顏色 #E3F2FD 淺藍
 CURRENT_LYRICS_COLOR = (72, 72, 145)  # 當前歌詞顏色 #484891
 OTHER_LYRICS_COLOR = (72, 72, 145)  # 其他歌詞顏色 #484891
 FONT_SIZE = 25               # 統一字體大小
+CURRENT_FONT_SIZE = 28       # 當前歌詞字體大小
 BG_IMAGE_PATH = "background.png"  # 背景圖片路徑（放在專案資料夾）
 OVERLAY_ALPHA = 0.7          # 黑色遮罩透明度
 TEXT_STROKE_WIDTH = 1        # 文字白邊寬度
@@ -113,7 +114,9 @@ def try_load_fonts(font_path):
     try:
         print(f"正在嘗試載入字體: {font_path}")
         c_font = ImageFont.truetype(font_path, FONT_SIZE)
+        c_font_current = ImageFont.truetype(font_path, CURRENT_FONT_SIZE)
         e_font = ImageFont.truetype(font_path, int(FONT_SIZE * 0.65))
+        e_font_current = ImageFont.truetype(font_path, int(CURRENT_FONT_SIZE * 0.65))
         t_font = ImageFont.truetype(font_path, 56)
         s_font = ImageFont.truetype(font_path, 22)
         
@@ -123,7 +126,7 @@ def try_load_fonts(font_path):
         dummy_draw.text((10, 10), "測試渲染Test", font=c_font)
         dummy_draw.text((10, 50), "測試渲染Test", font=e_font)
         
-        return c_font, e_font, t_font, s_font
+        return c_font, c_font_current, e_font, e_font_current, t_font, s_font
     except Exception as e:
         print(f"⚠ 字體 {font_path} 測試失敗: {e}")
         return None
@@ -138,7 +141,7 @@ if fonts is None and "msjh" not in FONT_PATH.lower():
     fonts = try_load_fonts(FONT_PATH)
 
 if fonts:
-    CHINESE_FONT, ENGLISH_FONT, TITLE_FONT, SINGER_FONT = fonts
+    CHINESE_FONT, CHINESE_FONT_CURRENT, ENGLISH_FONT, ENGLISH_FONT_CURRENT, TITLE_FONT, SINGER_FONT = fonts
     print(f"✓ 字體最終確認: {os.path.basename(FONT_PATH)}")
 else:
     print(f"✗ 致命錯誤: 無法載入任何可用字體。請確認 {FONT_PATH} 或 msjh.ttc 是否存在。")
@@ -407,24 +410,19 @@ def make_frame(t):
                     y = block_top + idx * chinese_line_height
                     # 使用自定義函數繪製，增加字間距 (spacing=5)
                     if i == current_index:
-                        # 當前歌詞：模擬粗體 + 白邊
+                        # 當前歌詞：模擬粗體 + 白邊 + 更大字體 (28)
                         # 1. 繪製底部白邊 (粗大白邊)
-                        # 粗體增加 1px，白邊 1px -> 總描邊 3px (對應單側 1.5px? 不，PIL描邊均分內外)
-                        # 實際上 stroke_width=3 表示整個線寬3。邊緣外擴 1.5px。
-                        # 上層 stroke_width=1 表示線寬1。邊緣外擴 0.5px。
-                        # 可見白邊 = 1.5 - 0.5 = 1.0px。符合需求。
                         draw_text_with_spacing(
-                            draw, (x, y), line, font=CHINESE_FONT, fill=color,
+                            draw, (x, y), line, font=CHINESE_FONT_CURRENT, fill=color,
                             stroke_width=3, stroke_fill=stroke_color, spacing=5, anchor="mm"
                         )
                         # 2. 繪製上層文字 (模擬粗體)
-                        # stroke_width=1 的同色描邊
                         draw_text_with_spacing(
-                            draw, (x, y), line, font=CHINESE_FONT, fill=color,
+                            draw, (x, y), line, font=CHINESE_FONT_CURRENT, fill=color,
                             stroke_width=1, stroke_fill=color, spacing=5, anchor="mm"
                         )
                     else:
-                        # 其他歌詞：正常繪製 (白邊 0.5)
+                        # 其他歌詞：正常繪製 (白邊 0.5) + 原字體 (25)
                         draw_text_with_spacing(
                             draw, (x, y), line, font=CHINESE_FONT, fill=color,
                             stroke_width=current_stroke_width, stroke_fill=stroke_color, spacing=5, anchor="mm"
@@ -449,13 +447,13 @@ def make_frame(t):
                     y = english_start_y + idx * english_line_height
                     # 使用自定義函數繪製，英文字間距稍小 (spacing=2)
                     if i == current_index:
-                        # 當前歌詞：模擬粗體 + 白邊
+                        # 當前歌詞：模擬粗體 + 白邊 + 更大字體
                         draw_text_with_spacing(
-                            draw, (lyrics_center_x, y), line, font=ENGLISH_FONT, fill=english_color,
+                            draw, (lyrics_center_x, y), line, font=ENGLISH_FONT_CURRENT, fill=english_color,
                             stroke_width=3, stroke_fill=stroke_color, spacing=2, anchor="mm"
                         )
                         draw_text_with_spacing(
-                            draw, (lyrics_center_x, y), line, font=ENGLISH_FONT, fill=english_color,
+                            draw, (lyrics_center_x, y), line, font=ENGLISH_FONT_CURRENT, fill=english_color,
                             stroke_width=1, stroke_fill=english_color, spacing=2, anchor="mm"
                         )
                     else:
