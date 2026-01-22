@@ -75,15 +75,15 @@ root.destroy()
 
 FONT_PATH = FONT_FILE if FONT_FILE else "msjh.ttc"  # 使用選擇/資料夾內的 TTF，否則使用預設字體
 
-VIDEO_SIZE = (1280, 720)      # 影片解析度
-FPS = 24                      # 每秒幾格
-BAR_COUNT = 90                # 畫面要有幾根音頻柱子（增加到90根確保覆蓋完整）
+VIDEO_SIZE = (1920, 1080)     # 影片解析度 (1080p)
+FPS = 30                      # 每秒幾格
+BAR_COUNT = 120               # 畫面要有幾根音頻柱子
 BAR_COLOR = (90, 90, 173)     # 柱子顏色 #5A5AAD
 BG_COLOR = (227, 242, 253)    # 背景顏色 #E3F2FD 淺藍
 CURRENT_LYRICS_COLOR = (72, 72, 145)  # 當前歌詞顏色 #484891
 OTHER_LYRICS_COLOR = (72, 72, 145)  # 其他歌詞顏色 #484891
-FONT_SIZE = 25               # 統一字體大小
-CURRENT_FONT_SIZE = 35       # 當前歌詞字體大小
+FONT_SIZE = 38               # 統一字體大小
+CURRENT_FONT_SIZE = 55       # 當前歌詞字體大小
 BG_IMAGE_PATH = "background.png"  # 背景圖片路徑（放在專案資料夾）
 OVERLAY_ALPHA = 0.7          # 黑色遮罩透明度
 TEXT_STROKE_WIDTH = 0.7        # 文字白邊寬度
@@ -117,8 +117,8 @@ def try_load_fonts(font_path):
         c_font_current = ImageFont.truetype(font_path, CURRENT_FONT_SIZE)
         e_font = ImageFont.truetype(font_path, int(FONT_SIZE * 0.65))
         e_font_current = ImageFont.truetype(font_path, int(CURRENT_FONT_SIZE * 0.65))
-        t_font = ImageFont.truetype(font_path, 56)
-        s_font = ImageFont.truetype(font_path, 30)
+        t_font = ImageFont.truetype(font_path, 84)
+        s_font = ImageFont.truetype(font_path, 45)
         
         # 強制渲染測試：畫一張小圖來觸發潛在的錯誤 (如 OSError: too many function definitions)
         dummy_img = Image.new("RGB", (100, 100))
@@ -408,8 +408,8 @@ def make_frame(t):
                 current_item_idx = len(visible_items) // 2
 
             # 固定當前歌詞的中心位置
-            base_ref_y = h // 2 + 50  # 稍微偏下
-            margin = 55  # 區塊之間的間距 (增加間距避免重疊)
+            base_ref_y = h // 2 + 75  # 稍微偏下
+            margin = 80  # 區塊之間的間距 (增加間距避免重疊)
 
             # --- 滑動動畫計算 ---
             global_y_offset = 0
@@ -520,7 +520,7 @@ def make_frame(t):
     # --- D. 演唱者標記（右下角紅色區域） ---
     try:
         singer_text = "演唱者：chi"
-        padding = 20
+        padding = 30
         # 使用右下角锚点
         x = w - padding
         y = h - padding
@@ -563,5 +563,5 @@ audio = AudioFileClip(AUDIO_FILE)
 video = video.with_audio(audio)
 
 # 寫入檔案
-video.write_videofile(OUTPUT_FILE, fps=FPS, codec='libx264', audio_codec='aac')
+video.write_videofile(OUTPUT_FILE, fps=FPS, codec='libx264', audio_codec='aac', bitrate="8000k", preset="medium")
 print(f"完成！影片已存為 {OUTPUT_FILE}")
