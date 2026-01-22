@@ -16,10 +16,13 @@ print("請選擇檔案...")
 root = Tk()
 root.withdraw()
 root.attributes('-topmost', True)
+root.lift()
+root.focus_force()
 
 # 選擇音樂檔案
 print("\n1. 請選擇音樂檔案 (MP3)")
 AUDIO_FILE = filedialog.askopenfilename(
+    parent=root,
     title="選擇音樂檔案",
     filetypes=[("音樂檔案", "*.mp3 *.wav *.m4a"), ("所有檔案", "*.*")]
 )
@@ -33,6 +36,7 @@ print(f"已選擇音樂: {os.path.basename(AUDIO_FILE)}")
 # 選擇歌詞檔案
 print("\n2. 請選擇歌詞檔案 (SRT)")
 SRT_FILE = filedialog.askopenfilename(
+    parent=root,
     title="選擇歌詞檔案",
     filetypes=[("字幕檔案", "*.srt"), ("所有檔案", "*.*")]
 )
@@ -43,14 +47,45 @@ if not SRT_FILE:
 
 print(f"已選擇歌詞: {os.path.basename(SRT_FILE)}")
 
-# 自動使用資料夾內的字體檔案
-local_fonts = glob.glob(os.path.join(os.getcwd(), "*.ttf"))
-if local_fonts:
-    FONT_FILE = local_fonts[0]
-    print(f"\n使用資料夾內字體: {os.path.basename(FONT_FILE)}")
+# 指定目標字體名稱 (優先使用修復版)
+TARGET_FONT_NAME = "ChenYuluoyan-2.0-Thin_fixed.ttf"
+ORIGINAL_FONT_NAME = "ChenYuluoyan-2.0-Thin.ttf"
+
+# 定義搜尋路徑
+search_paths = [
+    # 1. 專案目錄 (Fixed)
+    os.path.join(os.path.dirname(__file__), TARGET_FONT_NAME),
+    # 2. 專案目錄 (Original - if fixed doesn't exist yet but we will try to find fixed first)
+    os.path.join(os.path.dirname(__file__), ORIGINAL_FONT_NAME),
+    # 3. 系統字體目錄
+    os.path.join(os.environ.get("SystemRoot", r"C:\Windows"), "Fonts", TARGET_FONT_NAME),
+    os.path.join(os.environ.get("SystemRoot", r"C:\Windows"), "Fonts", ORIGINAL_FONT_NAME),
+    # 4. 使用者字體目錄
+    os.path.join(os.environ.get("LOCALAPPDATA", ""), r"Microsoft\Windows\Fonts", TARGET_FONT_NAME),
+    os.path.join(os.environ.get("LOCALAPPDATA", ""), r"Microsoft\Windows\Fonts", ORIGINAL_FONT_NAME)
+]
+
+FONT_FILE = None
+# 嘗試在已知路徑尋找
+for path in search_paths:
+    if os.path.exists(path):
+        FONT_FILE = path
+        print(f"\n找到字體: {FONT_FILE}")
+        # 如果找到的是修復版，直接停止搜尋
+        if "fixed" in os.path.basename(path):
+            break
+
+# 如果還沒產生 fixed 檔，但找到了原檔，會繼續執行，但後面可能會報錯
+# 在這裡我們不強制要求一定是 fixed，因為之前的修復腳本是外部執行的
+# 但為了確保穩定，我們可以加上自動修復提示
+
+
+if FONT_FILE:
+    print(f"\n使用指定字體: {FONT_FILE}")
 else:
-    FONT_FILE = None
-    print("\n未找到 TTF 字體檔案，使用預設字體")
+    # 如果找不到路徑，嘗試直接使用檔名（讓系統去尋找安裝的字體）
+    print(f"\n在資料夾中未找到 {TARGET_FONT_NAME}，嘗試直接呼叫系統已安裝字體...")
+    FONT_FILE = TARGET_FONT_NAME
 
 # 自動使用音檔名稱作為歌曲名稱
 SONG_TITLE = os.path.splitext(os.path.basename(AUDIO_FILE))[0]
@@ -59,6 +94,7 @@ print(f"歌曲名稱: {SONG_TITLE}")
 # 選擇輸出位置
 print("\n3. 請選擇影片輸出位置")
 OUTPUT_FILE = filedialog.asksaveasfilename(
+    parent=root,
     title="儲存影片",
     defaultextension=".mp4",
     filetypes=[("MP4 影片", "*.mp4"), ("所有檔案", "*.*")],
@@ -73,7 +109,7 @@ else:
 
 root.destroy()
 
-FONT_PATH = FONT_FILE if FONT_FILE else "msjh.ttc"  # 使用選擇/資料夾內的 TTF，否則使用預設字體
+FONT_PATH = FONT_FILE if FONT_FILE else TARGET_FONT_NAME
 
 VIDEO_SIZE = (1920, 1080)     # 影片解析度 (1080p)
 FPS = 30                      # 每秒幾格
@@ -111,34 +147,59 @@ print(f"✓ 字幕載入成功: {len(subs)} 句歌詞")
 # 預先載入字體與背景，避免每幀重複初始化
 def try_load_fonts(font_path):
     """嘗試載入並測試字體，成功回傳字體物件，失敗回傳 None"""
+    
+    def load_font_set(engine=None):
+        kwargs = {}
+        if engine is not None:
+            kwargs['layout_engine'] = engine
+        
+        return (
+            ImageFont.truetype(font_path, FONT_SIZE, **kwargs),
+            ImageFont.truetype(font_path, CURRENT_FONT_SIZE, **kwargs),
+            ImageFont.truetype(font_path, int(FONT_SIZE * 0.65), **kwargs),
+            ImageFont.truetype(font_path, int(CURRENT_FONT_SIZE * 0.65), **kwargs),
+            ImageFont.truetype(font_path, 84, **kwargs),
+            ImageFont.truetype(font_path, 45, **kwargs)
+        )
+
     try:
         print(f"正在嘗試載入字體: {font_path}")
-        c_font = ImageFont.truetype(font_path, FONT_SIZE)
-        c_font_current = ImageFont.truetype(font_path, CURRENT_FONT_SIZE)
-        e_font = ImageFont.truetype(font_path, int(FONT_SIZE * 0.65))
-        e_font_current = ImageFont.truetype(font_path, int(CURRENT_FONT_SIZE * 0.65))
-        t_font = ImageFont.truetype(font_path, 84)
-        s_font = ImageFont.truetype(font_path, 45)
+        # 1. 嘗試預設載入
+        fonts = load_font_set()
         
-        # 強制渲染測試：畫一張小圖來觸發潛在的錯誤 (如 OSError: too many function definitions)
+        # 強制渲染測試：畫一張小圖來觸發潛在的錯誤
+        c_font = fonts[0]
         dummy_img = Image.new("RGB", (100, 100))
         dummy_draw = ImageDraw.Draw(dummy_img)
         dummy_draw.text((10, 10), "測試渲染Test", font=c_font)
-        dummy_draw.text((10, 50), "測試渲染Test", font=e_font)
         
-        return c_font, c_font_current, e_font, e_font_current, t_font, s_font
+        return fonts
     except Exception as e:
-        print(f"⚠ 字體 {font_path} 測試失敗: {e}")
-        return None
+        print(f"⚠ 標準載入失敗 ({e})，嘗試切換排版引擎...")
+        
+        try:
+            # 2. 嘗試使用 BASIC 引擎 (避開某些複雜字體的 bug)
+            fonts = load_font_set(ImageFont.Layout.BASIC)
+            
+            c_font = fonts[0]
+            dummy_img = Image.new("RGB", (100, 100))
+            dummy_draw = ImageDraw.Draw(dummy_img)
+            dummy_draw.text((10, 10), "測試渲染Test", font=c_font)
+            
+            print("✓ 使用 BASIC 引擎載入成功")
+            return fonts
+        except Exception as e2:
+            print(f"⚠ 字體 {font_path} 測試失敗: {e2}")
+            return None
 
 # 1. 先嘗試預定的 FONT_PATH
 fonts = try_load_fonts(FONT_PATH)
 
-# 2. 如果失敗且不是微軟正黑體，則嘗試微軟正黑體
-if fonts is None and "msjh" not in FONT_PATH.lower():
-    print("嘗試切換至系統預設微軟正黑體 (msjh.ttc)...")
-    FONT_PATH = "msjh.ttc"
-    fonts = try_load_fonts(FONT_PATH)
+# 2. 只有在真的找不到時才報錯，不再自動切換回微軟正黑體
+if fonts is None:
+    print(f"✗ 致命錯誤: 無法載入字體 {FONT_PATH}。")
+    print("請確認該字體檔案位於專案目錄下，或是已正確安裝在 Windows 中。")
+    exit(1)
 
 if fonts:
     CHINESE_FONT, CHINESE_FONT_CURRENT, ENGLISH_FONT, ENGLISH_FONT_CURRENT, TITLE_FONT, SINGER_FONT = fonts
